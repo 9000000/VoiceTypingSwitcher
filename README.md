@@ -2,7 +2,7 @@
 
 **Tiếng Việt** | [English](README.en.md)
 
-> **VoiceTypingSwitcher** là tiện ích chạy khay hệ thống siêu nhẹ cho Windows 11 (C++ Win32 thuần, ~277 KB, ~2,5 MB RAM). Khi bấm phím tắt kích hoạt (`Win+H`, `Win+C` hoặc tổ hợp phím tự gán), app tự chuyển bàn phím sang ngôn ngữ đọc (mặc định Tiếng Việt) rồi mới mở Voice Typing để nhận dạng đúng ngay lập tức; khi kết thúc bằng `Enter`, nhấp chuột ra ngoài, `Esc` hoặc nút `X`, app tự tắt Voice Typing và trả về ngôn ngữ chỉ định hoặc ngôn ngữ trước đó.
+> **VoiceTypingSwitcher** là tiện ích chạy khay hệ thống siêu nhẹ cho Windows 11 (C++ Win32 thuần, ~295 KB, ~2,6 MB RAM). Khi bấm phím tắt kích hoạt (`Win+H`, `Win+C` hoặc tổ hợp phím tự gán), app tự chuyển bàn phím sang ngôn ngữ đọc (mặc định Tiếng Việt) rồi mới mở Voice Typing để nhận dạng đúng ngay lập tức; khi kết thúc bằng `Enter`, nhấp chuột ra ngoài, `Esc` hoặc nút `X`, app tự tắt Voice Typing và trả về ngôn ngữ chỉ định hoặc ngôn ngữ trước đó.
 
 - Bấm **phím tắt kích hoạt** (mặc định **Win+H**, có thể đổi sang **Win+C** hoặc tự gán tổ hợp phím bất kỳ): tự đổi bàn phím sang ngôn ngữ đọc (mặc định **Tiếng Việt**) rồi mới mở Voice Typing.
 - Khi kết thúc (**Enter**, **nhấp chuột ra ngoài** thanh Voice Typing, **Esc**, nút **X**, hoặc thanh tự đóng): nếu bấm **Enter** hoặc **nhấp chuột ra ngoài**, app tự gửi `Win+H` để **đóng luôn thanh Voice Typing** rồi đổi về
@@ -18,7 +18,10 @@ Chạy `bin\VoiceTypingSwitcher.exe`. Nhấp chuột phải (hoặc trái) vào 
 | Phím tắt | Chọn nhanh `Win + H`, `Win + C`, hoặc `Gán phím khác...` (vd: `Alt+Q`, `Ctrl+Shift+V`, `F9`) |
 | Ngôn ngữ khi Voice Typing | Chọn ngôn ngữ đổi sang khi kích hoạt |
 | Ngôn ngữ khi thoát | Chọn ngôn ngữ cố định, hoặc "Ngôn ngữ trước khi kích hoạt" |
+| Ngôn ngữ hiển thị | Đổi giao diện app giữa `Tiếng Việt` và `English` |
 | Khởi động cùng Windows | Ghi vào `HKCU\...\Run` |
+| Kiểm tra cập nhật | Kiểm tra và tự cập nhật file `.exe` từ GitHub Releases mới nhất |
+| Thông tin & GitHub | Xem phiên bản hiện tại, mở link GitHub hoặc kiểm tra cập nhật |
 | Thoát | Đóng app |
 
 Cấu hình lưu tại `HKCU\Software\VoiceTypingSwitcher`. Danh sách ngôn ngữ lấy từ các bàn phím đã cài trong Settings › Time & language.
@@ -41,9 +44,11 @@ test.cmd    :: test liệt kê bàn phím + đọc cấu hình
 
 ## Cấu trúc
 ```
-src/main.cpp      tray, menu, hộp thoại gán phím tắt, máy trạng thái phiên
+src/main.cpp      tray, menu, hộp thoại gán phím tắt/thông tin, máy trạng thái phiên
 src/hooks.cpp     hook bàn phím (phím tắt kích hoạt, Enter, Esc) + hook chuột (chỉ bật trong phiên)
 src/lang.cpp      liệt kê / đổi bàn phím (WM_INPUTLANGCHANGEREQUEST)
 src/voicebar.cpp  nhận biết thanh Voice Typing (TextInputHost.exe) + --probe
 src/config.cpp    registry, khởi động cùng Windows
+src/updater.cpp   kiểm tra và tải cập nhật từ GitHub Releases (WinHTTP)
+src/version.h     phiên bản app & URL GitHub dùng chung cho code và resource
 ```

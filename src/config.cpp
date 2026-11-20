@@ -22,6 +22,8 @@ Config LoadConfig() {
     ReadDword(L"RestoreMode", c.restoreMode);
     ReadDword(L"HotkeyMods", c.hotkeyMods);
     ReadDword(L"HotkeyVk", c.hotkeyVk);
+    ReadDword(L"UiLang", c.uiLang);
+    if (c.uiLang > UiEn) c.uiLang = UiVi;
     c.hotkeyMods &= (MOD_WIN | MOD_CONTROL | MOD_ALT | MOD_SHIFT);
     if (!IsValidHotkey(c.hotkeyMods, c.hotkeyVk)) {
         c.hotkeyMods = MOD_WIN;
@@ -37,6 +39,7 @@ void SaveConfig(const Config& c) {
     WriteDword(L"RestoreMode", c.restoreMode);
     WriteDword(L"HotkeyMods", c.hotkeyMods);
     WriteDword(L"HotkeyVk", c.hotkeyVk);
+    WriteDword(L"UiLang", c.uiLang);
 }
 
 bool IsValidHotkey(DWORD mods, DWORD vk) {

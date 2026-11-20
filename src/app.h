@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <string>
 #include <vector>
+#include "version.h"
 
 // ---- Messages posted to the main window ----
 enum : UINT {
@@ -18,12 +19,15 @@ enum : UINT {
     WM_APP_CAPTURE_KEY,         // wParam = mods, lParam = vk captured
     WM_APP_CAPTURE_CANCEL,      // Esc pressed in capture mode
     WM_APP_CAPTURE_ACCEPT,      // Enter pressed after a combo was captured
+    WM_APP_UPDATE_CHECK,        // lParam = UpdateInfo* (heap-allocated, receiver frees)
+    WM_APP_UPDATE_DL,           // lParam = DownloadResult* (heap-allocated, receiver frees)
 };
 
 constexpr ULONG_PTR kTag = 0x56545357;  // 'VTSW' marks input injected by this app
 
 // ---- Config (registry: HKCU\Software\VoiceTypingSwitcher) ----
 enum RestoreMode : DWORD { RestoreFixed = 0, RestorePrevious = 1 };
+enum UiLang : DWORD { UiVi = 0, UiEn = 1 };
 struct Config {
     DWORD enabled = 1;
     DWORD voiceLang = 0x042A;    // Vietnamese
@@ -31,6 +35,7 @@ struct Config {
     DWORD restoreMode = RestoreFixed;
     DWORD hotkeyMods = MOD_WIN;  // MOD_WIN | MOD_CONTROL | MOD_ALT | MOD_SHIFT
     DWORD hotkeyVk = 'H';        // trigger key (default Win+H)
+    DWORD uiLang = UiVi;         // 0 = Vietnamese, 1 = English
 };
 Config LoadConfig();
 void SaveConfig(const Config&);
@@ -61,6 +66,29 @@ int RunProbe();  // --probe: log TextInputHost windows + UIA to probe.log
 // ---- Diagnostic session log (%TEMP%\VoiceTypingSwitcher.log) ----
 void ResetSessionLog();
 void LogSession(const wchar_t* fmt, ...);
+
+// ---- GitHub Release Updater ----
+enum UpdateStatus { UpdUpToDate = 0, UpdAvailable = 1, UpdNoReleases = 2, UpdError = 3 };
+struct UpdateInfo {
+    UpdateStatus status = UpdError;
+    DWORD httpStatus = 0;
+    std::wstring tag;
+    std::wstring htmlUrl;
+    std::wstring exeUrl;
+    std::wstring error;
+};
+struct DownloadResult {
+    bool ok = false;
+    std::wstring tempExePath;
+    std::wstring error;
+};
+bool ParseSemVer(const wchar_t* tag, int& maj, int& min, int& pat);
+bool IsNewerVersion(const wchar_t* remoteTag, int curMaj, int curMin, int curPat);
+bool ParseReleaseJson(const std::string& json, UpdateInfo& out);
+void StartUpdateCheckAsync(HWND notifyWnd);
+void StartUpdateDownloadAsync(HWND notifyWnd, const std::wstring& exeUrl);
+bool ReplaceSelfAndPrepareRelaunch(const std::wstring& tempExePath, std::wstring& outExePath);
+void CleanupOldBinary(const wchar_t* cmdLine);
 
 // ---- Hooks ----
 extern HWND g_hwnd;

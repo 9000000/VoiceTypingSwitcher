@@ -20,10 +20,11 @@ int main() {
     for (auto& l : layouts) CHECK(FindHkl(l.lang) == l.hkl);
 
     Config c = LoadConfig();
-    std::printf("Config: enabled=%lu voice=0x%04lX restore=0x%04lX mode=%lu hotkey=%ls autostart=%d\n",
+    std::printf("Config: enabled=%lu voice=0x%04lX restore=0x%04lX mode=%lu hotkey=%ls ui=%lu autostart=%d\n",
                 c.enabled, c.voiceLang, c.restoreLang, c.restoreMode,
-                FormatHotkey(c.hotkeyMods, c.hotkeyVk).c_str(), GetAutostart());
+                FormatHotkey(c.hotkeyMods, c.hotkeyVk).c_str(), c.uiLang, GetAutostart());
     CHECK(c.restoreMode <= RestorePrevious);
+    CHECK(c.uiLang <= UiEn);
     CHECK(IsValidHotkey(c.hotkeyMods, c.hotkeyVk));
 
     CHECK(IsValidHotkey(MOD_WIN, 'C'));
@@ -35,6 +36,36 @@ int main() {
     CHECK(FormatHotkey(MOD_WIN, 'C') == L"Win + C");
     CHECK(FormatHotkey(MOD_CONTROL | MOD_ALT, 'Q') == L"Ctrl + Alt + Q");
     CHECK(FormatHotkey(0, VK_F9) == L"F9");
+
+    int maj = 0, min = 0, pat = 0;
+    CHECK(ParseSemVer(L"v1.2.3", maj, min, pat) && maj == 1 && min == 2 && pat == 3);
+    CHECK(ParseSemVer(L"2.0.0-beta", maj, min, pat) && maj == 2 && min == 0 && pat == 0);
+    CHECK(!ParseSemVer(L"invalid", maj, min, pat));
+    CHECK(IsNewerVersion(L"v1.2.0", 1, 1, 0));
+    CHECK(IsNewerVersion(L"v1.1.1", 1, 1, 0));
+    CHECK(IsNewerVersion(L"v2.0.0", 1, 9, 9));
+    CHECK(!IsNewerVersion(L"v1.1.0", 1, 1, 0));
+    CHECK(!IsNewerVersion(L"v1.0.9", 1, 1, 0));
+
+    const std::string mockRel = R"({
+        "html_url": "https://github.com/9000000/VoiceTypingSwitcher/releases/tag/v1.2.0",
+        "tag_name": "v1.2.0",
+        "author": {"html_url": "https://github.com/9000000"},
+        "assets": [
+            {"name": "source.zip", "browser_download_url": "https://github.com/9000000/VoiceTypingSwitcher/releases/download/v1.2.0/source.zip"},
+            {"name": "VoiceTypingSwitcher.exe", "browser_download_url": "https://github.com/9000000/VoiceTypingSwitcher/releases/download/v1.2.0/VoiceTypingSwitcher.exe"}
+        ]
+    })";
+    UpdateInfo ui;
+    CHECK(ParseReleaseJson(mockRel, ui));
+    CHECK(ui.tag == L"v1.2.0");
+    CHECK(ui.htmlUrl == L"https://github.com/9000000/VoiceTypingSwitcher/releases/tag/v1.2.0");
+    CHECK(ui.exeUrl == L"https://github.com/9000000/VoiceTypingSwitcher/releases/download/v1.2.0/VoiceTypingSwitcher.exe");
+
+    const std::string noExeRel = R"({"tag_name":"v1.3.0","html_url":"https://github.com/9000000/VoiceTypingSwitcher/releases/tag/v1.3.0","assets":[]})";
+    UpdateInfo ui2;
+    CHECK(ParseReleaseJson(noExeRel, ui2));
+    CHECK(ui2.tag == L"v1.3.0" && ui2.exeUrl.empty());
 
     CHECK(InitVoiceBar());
     VoiceBarInfo bar = QueryVoiceBar();
