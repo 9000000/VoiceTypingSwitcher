@@ -2,7 +2,7 @@
 
 [Tiếng Việt](README.md) | **English**
 
-Lightweight Windows 11 system tray utility written in pure Win32 C++ (~277 KB executable, ~2.5 MB private RAM, 0% idle CPU):
+> **VoiceTypingSwitcher** is an ultra-lightweight Windows 11 system tray utility written in pure Win32 C++ (~277 KB executable, ~2.5 MB private RAM, 0% idle CPU). Pressing the activation hotkey (`Win+H`, `Win+C`, or any custom shortcut) switches your keyboard layout to your dictation language (default Vietnamese) before launching Voice Typing so it recognizes the right language immediately; when you finish (`Enter`, clicking outside the toolbar, `Esc`, or `X`), it closes Voice Typing and restores either a fixed language or your previous layout.
 
 - Press the **activation hotkey** (default **Win+H**, switchable to **Win+C** or any custom key combination): automatically switches the input language to your dictation language (default **Vietnamese**) before opening Windows Voice Typing.
 - When ending dictation (**Enter**, **clicking outside** the Voice Typing bar, **Esc**, clicking **X**, or when the bar closes automatically):
