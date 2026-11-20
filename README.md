@@ -1,5 +1,7 @@
 # VoiceTypingSwitcher
 
+**Tiếng Việt** | [English](README.en.md)
+
 App chạy ngầm dưới khay hệ thống Windows 11, rất nhẹ (C++ Win32 thuần, khoảng 277 KB, ~2,5 MB RAM riêng):
 
 - Bấm **phím tắt kích hoạt** (mặc định **Win+H**, có thể đổi sang **Win+C** hoặc tự gán tổ hợp phím bất kỳ): tự đổi bàn phím sang ngôn ngữ đọc (mặc định **Tiếng Việt**) rồi mới mở Voice Typing.
