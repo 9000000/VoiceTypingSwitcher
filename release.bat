@@ -87,7 +87,7 @@ if not errorlevel 1 (
     taskkill /IM VoiceTypingSwitcher.exe /F >nul 2>&1
     ping -n 2 127.0.0.1 >nul
 )
-call build.cmd || goto :fail
+call build.cmd <nul || goto :fail
 if not exist "%EXE_PATH%" (
     echo [LỖI] Không tìm thấy %EXE_PATH% sau khi build.
     goto :fail
@@ -95,7 +95,7 @@ if not exist "%EXE_PATH%" (
 
 echo.
 echo [3/5] Chạy kiểm thử (test.cmd)...
-call test.cmd || goto :fail
+call test.cmd <nul || goto :fail
 
 echo.
 echo [4/5] Đẩy code và tag %TAG% lên GitHub...
@@ -215,40 +215,67 @@ $exePath = (Resolve-Path $env:EXE_PATH).Path
 $assetName = [IO.Path]::GetFileName($exePath)
 $title = "VoiceTypingSwitcher $tag"
 
-# 1) Try GitHub CLI (gh) first if installed and authenticated
-$gh = Get-Command gh -ErrorAction SilentlyContinue
-if (-not $gh -and (Test-Path "$env:ProgramFiles\GitHub CLI\gh.exe")) {
-    $gh = Get-Command "$env:ProgramFiles\GitHub CLI\gh.exe"
+function Get-LocalPropsToken {
+    $propFile = Join-Path $PWD.Path 'local.properties'
+    if (-not (Test-Path $propFile)) { return $null }
+    foreach ($line in [IO.File]::ReadAllLines($propFile, [Text.Encoding]::UTF8)) {
+        $t = $line.Trim()
+        if (-not $t -or $t.StartsWith('#') -or $t.StartsWith(';')) { continue }
+        if ($t -match '^(?:github\.token|GITHUB_TOKEN|GH_TOKEN|git\.token|token)\s*=\s*(.+)$') {
+            $val = $Matches[1].Trim().Trim('"').Trim("'")
+            if (-not [string]::IsNullOrWhiteSpace($val)) { return $val }
+        }
+    }
+    return $null
 }
-if ($gh) {
-    & $gh.Source auth status *> $null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "      Sử dụng GitHub CLI (gh)..."
-        & $gh.Source release view $tag *> $null
+
+$token = Get-LocalPropsToken
+$tokenSource = 'local.properties'
+if ([string]::IsNullOrWhiteSpace($token)) {
+    $token = $env:GITHUB_TOKEN
+    $tokenSource = 'GITHUB_TOKEN'
+}
+if ([string]::IsNullOrWhiteSpace($token)) {
+    $token = $env:GH_TOKEN
+    $tokenSource = 'GH_TOKEN'
+}
+
+# 1) If no token configured in local.properties/env, try GitHub CLI (gh) if installed and authenticated
+if ([string]::IsNullOrWhiteSpace($token)) {
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    if (-not $gh -and (Test-Path "$env:ProgramFiles\GitHub CLI\gh.exe")) {
+        $gh = Get-Command "$env:ProgramFiles\GitHub CLI\gh.exe"
+    }
+    if ($gh) {
+        & $gh.Source auth status *> $null
         if ($LASTEXITCODE -eq 0) {
-            & $gh.Source release upload $tag $exePath --clobber
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            if (-not [string]::IsNullOrWhiteSpace($notes)) {
-                & $gh.Source release edit $tag --title $title --notes $notes
+            Write-Host "      Sử dụng GitHub CLI (gh)..."
+            & $gh.Source release view $tag *> $null
+            if ($LASTEXITCODE -eq 0) {
+                & $gh.Source release upload $tag $exePath --clobber
+                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                if (-not [string]::IsNullOrWhiteSpace($notes)) {
+                    & $gh.Source release edit $tag --title $title --notes $notes
+                    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                }
+            } else {
+                $ghArgs = @('release', 'create', $tag, $exePath, '--title', $title)
+                if ([string]::IsNullOrWhiteSpace($notes)) {
+                    $ghArgs += '--generate-notes'
+                } else {
+                    $ghArgs += @('--notes', $notes)
+                }
+                & $gh.Source @ghArgs
                 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }
-        } else {
-            $ghArgs = @('release', 'create', $tag, $exePath, '--title', $title)
-            if ([string]::IsNullOrWhiteSpace($notes)) {
-                $ghArgs += '--generate-notes'
-            } else {
-                $ghArgs += @('--notes', $notes)
-            }
-            & $gh.Source @ghArgs
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $url = (& $gh.Source release view $tag --json url --jq .url 2>$null)
+            if ($url) { Write-Host "      Release URL : $url" }
+            exit 0
         }
-        $url = (& $gh.Source release view $tag --json url --jq .url 2>$null)
-        if ($url) { Write-Host "      Release URL : $url" }
-        exit 0
     }
 }
 
-# 2) Fallback: GitHub REST API using GITHUB_TOKEN / GH_TOKEN / Git Credential Manager / PAT prompt
+# 2) GitHub REST API using local.properties / env / Git Credential Manager / PAT prompt
 $remote = (git remote get-url origin).Trim()
 if ($remote -notmatch 'github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$') {
     throw "Không nhận diện được GitHub repository từ remote origin: $remote"
@@ -277,19 +304,13 @@ function Get-GcmToken {
 
 function Prompt-Token {
     Write-Host "      Cần GitHub Personal Access Token (quyền repo / Contents: Read & Write)."
-    Write-Host "      (Hoặc cài GitHub CLI: winget install GitHub.cli && gh auth login)"
+    Write-Host "      Mẹo: dán vào local.properties (github.token=...) để tự dùng cho các lần sau."
     $sec = Read-Host "      Nhập GitHub Token" -AsSecureString
     $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
     try { return [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr).Trim() }
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 }
 
-$token = $env:GITHUB_TOKEN
-$tokenSource = 'GITHUB_TOKEN'
-if ([string]::IsNullOrWhiteSpace($token)) {
-    $token = $env:GH_TOKEN
-    $tokenSource = 'GH_TOKEN'
-}
 if ([string]::IsNullOrWhiteSpace($token)) {
     $token = Get-GcmToken
     $tokenSource = 'Git Credential Manager'
