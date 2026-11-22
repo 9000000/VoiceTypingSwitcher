@@ -5,7 +5,7 @@
 > **VoiceTypingSwitcher** là tiện ích chạy khay hệ thống siêu nhẹ cho Windows 11 (C++ Win32 thuần, ~295 KB, ~2,6 MB RAM). Khi bấm phím tắt kích hoạt (`Win+H`, `Win+C` hoặc tổ hợp phím tự gán), app tự chuyển bàn phím sang ngôn ngữ đọc (mặc định Tiếng Việt) rồi mới mở Voice Typing để nhận dạng đúng ngay lập tức; khi kết thúc bằng `Enter`, nhấp chuột ra ngoài, `Esc` hoặc nút `X`, app tự tắt Voice Typing và trả về ngôn ngữ chỉ định hoặc ngôn ngữ trước đó.
 
 - Bấm **phím tắt kích hoạt** (mặc định **Win+H**, có thể đổi sang **Win+C** hoặc tự gán tổ hợp phím bất kỳ): tự đổi bàn phím sang ngôn ngữ đọc (mặc định **Tiếng Việt**) rồi mới mở Voice Typing.
-- Khi kết thúc (**Enter**, **nhấp chuột ra ngoài** thanh Voice Typing, **Esc**, nút **X**, hoặc thanh tự đóng): nếu bấm **Enter** hoặc **nhấp chuột ra ngoài**, app tự gửi `Win+H` để **đóng luôn thanh Voice Typing** rồi đổi về
+- Khi kết thúc (**Enter**, **nhấp chuột ra ngoài** thanh Voice Typing, **Esc**, nút **X**, hoặc thanh tự đóng): nếu bấm **Enter** hoặc **nhấp chuột ra ngoài**, app tự gửi `Esc` để **đóng luôn thanh Voice Typing** rồi đổi về
   - **ngôn ngữ cố định** (mặc định English US), hoặc
   - **ngôn ngữ trước khi kích hoạt**.
 

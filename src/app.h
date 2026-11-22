@@ -103,5 +103,5 @@ void RemoveKeyboardHook();
 void InstallMouseHook();
 void RemoveMouseHook();
 void ResetModifierState();
-void SendWinH();
+void SendEsc();
 void InjectWinH();

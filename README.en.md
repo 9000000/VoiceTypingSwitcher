@@ -6,7 +6,7 @@
 
 - Press the **activation hotkey** (default **Win+H**, switchable to **Win+C** or any custom key combination): automatically switches the input language to your dictation language (default **Vietnamese**) before opening Windows Voice Typing.
 - When ending dictation (**Enter**, **clicking outside** the Voice Typing bar, **Esc**, clicking **X**, or when the bar closes automatically):
-  - On **Enter** or **clicking outside** the bar, the app automatically sends `Win+H` to **close the Voice Typing bar** before restoring the input language.
+  - On **Enter** or **clicking outside** the bar, the app automatically sends `Esc` to **close the Voice Typing bar** before restoring the input language.
   - Restores either a **fixed language** (default **English US**) or the **previous language** active before triggering Voice Typing.
 
 ## Usage

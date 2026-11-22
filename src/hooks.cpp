@@ -123,7 +123,7 @@ static INPUT Key(WORD vk, bool up) {
     return in;
 }
 
-void SendWinH() {
+static void SendWinH() {
     INPUT in[16];
     UINT n = 0;
 
@@ -147,6 +147,26 @@ void SendWinH() {
     else if (!s_lwin && !s_rwin) in[n++] = Key(VK_LWIN, true);
 
     s_heldWinVk = 0;
+    SendInput(n, in, sizeof(INPUT));
+}
+
+void SendEsc() {
+    INPUT in[16];
+    UINT n = 0;
+    if (s_lalt || s_ralt) {
+        in[n++] = Key(0xE8, false);
+        in[n++] = Key(0xE8, true);
+    }
+    if (s_lctrl) in[n++] = Key(VK_LCONTROL, true);
+    if (s_rctrl) in[n++] = Key(VK_RCONTROL, true);
+    if (s_lalt) in[n++] = Key(VK_LMENU, true);
+    if (s_ralt) in[n++] = Key(VK_RMENU, true);
+    if (s_lshift) in[n++] = Key(VK_LSHIFT, true);
+    if (s_rshift) in[n++] = Key(VK_RSHIFT, true);
+    if (s_lwin) in[n++] = Key(VK_LWIN, true);
+    if (s_rwin) in[n++] = Key(VK_RWIN, true);
+    in[n++] = Key(VK_ESCAPE, false);
+    in[n++] = Key(VK_ESCAPE, true);
     SendInput(n, in, sizeof(INPUT));
 }
 

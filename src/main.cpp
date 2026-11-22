@@ -35,7 +35,7 @@ constexpr int kInjectMinTicks =
 constexpr int kInjectMaxTicks = 10; // 250ms cap
 constexpr DWORD kPollMs = 350;
 constexpr DWORD kCloseDelayMs =
-    40; // let Enter / mouse click settle before sending Win+H
+    40; // let Enter / mouse click settle before sending Esc
 constexpr DWORD kRestoreDelayMs =
     80; // let Voice Typing finish closing before restoring language
 constexpr int kCloseMisses =
@@ -100,7 +100,7 @@ static void EndSession(const wchar_t *reason, bool closeBar,
                         : FindHkl((LANGID)s_cfg.restoreLang);
   if (closeBar && s_injectedOpen) {
     LogSession(
-        L"EndSession(%ls): scheduling close Win+H; curHKL=%p -> restoreHKL=%p",
+        L"EndSession(%ls): scheduling close Esc; curHKL=%p -> restoreHKL=%p",
         reason, (void *)CurrentHkl(), (void *)s_restoreTarget);
     SetTimer(g_hwnd, TIMER_CLOSE_BAR, kCloseDelayMs, nullptr);
   } else if (delayRestore) {
@@ -835,8 +835,8 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
       Poll();
     else if (wp == TIMER_CLOSE_BAR) {
       KillTimer(h, TIMER_CLOSE_BAR);
-      LogSession(L"Sending Win+H to close Voice Typing");
-      SendWinH();
+      LogSession(L"Sending Esc to close Voice Typing");
+      SendEsc();
       SetTimer(h, TIMER_RESTORE, kRestoreDelayMs, nullptr);
     } else if (wp == TIMER_RESTORE) {
       KillTimer(h, TIMER_RESTORE);

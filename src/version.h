@@ -2,9 +2,9 @@
 
 #define APP_VER_MAJOR 1
 #define APP_VER_MINOR 0
-#define APP_VER_PATCH 0
-#define APP_VER_STR "1.0.0"
-#define APP_VER_WSTR L"1.0.0"
+#define APP_VER_PATCH 1
+#define APP_VER_STR "1.0.1"
+#define APP_VER_WSTR L"1.0.1"
 
 #define APP_GITHUB_OWNER L"9000000"
 #define APP_GITHUB_REPO L"VoiceTypingSwitcher"
