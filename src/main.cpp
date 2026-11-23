@@ -35,7 +35,11 @@ constexpr int kInjectMinTicks =
 constexpr int kInjectMaxTicks = 10; // 250ms cap
 constexpr DWORD kPollMs = 350;
 constexpr DWORD kCloseDelayMs =
-    40; // let Enter / mouse click settle before sending Esc
+    40; // wait for Enter / mouse button release before sending Esc
+constexpr DWORD kCloseRetryMs =
+    120; // re-check Voice Typing bar and retry Esc if still visible
+constexpr int kCloseMaxWaitTicks = 15; // <= 600ms waiting for button/mod release
+constexpr int kCloseMaxTries = 3;      // max Esc attempts if bar stays visible
 constexpr DWORD kRestoreDelayMs =
     80; // let Voice Typing finish closing before restoring language
 constexpr int kCloseMisses =
@@ -53,6 +57,8 @@ static bool s_dumpedWins = false;
 static int s_missCount = 0;
 static int s_pollTicks = 0;
 static int s_injectTicks = 0;
+static int s_closeTries = 0;
+static int s_closeWaitTicks = 0;
 static RECT s_barRect{};
 static HKL s_prevHkl = nullptr;
 static HKL s_restoreTarget = nullptr;
@@ -99,6 +105,8 @@ static void EndSession(const wchar_t *reason, bool closeBar,
                         ? s_prevHkl
                         : FindHkl((LANGID)s_cfg.restoreLang);
   if (closeBar && s_injectedOpen) {
+    s_closeTries = 0;
+    s_closeWaitTicks = 0;
     LogSession(
         L"EndSession(%ls): scheduling close Esc; curHKL=%p -> restoreHKL=%p",
         reason, (void *)CurrentHkl(), (void *)s_restoreTarget);
@@ -159,6 +167,37 @@ static void OnInjectTick() {
   }
 }
 
+static bool InputBusy() {
+  return ((GetAsyncKeyState(VK_LBUTTON) | GetAsyncKeyState(VK_RBUTTON) |
+           GetAsyncKeyState(VK_MBUTTON) | GetAsyncKeyState(VK_CONTROL) |
+           GetAsyncKeyState(VK_MENU) | GetAsyncKeyState(VK_SHIFT) |
+           GetAsyncKeyState(VK_LWIN) | GetAsyncKeyState(VK_RWIN)) &
+          0x8000) != 0;
+}
+
+static void OnCloseBarTick() {
+  if (s_closeTries == 0) {
+    if (InputBusy() && ++s_closeWaitTicks < kCloseMaxWaitTicks)
+      return;
+  } else if (!QueryVoiceBar().visible) {
+    KillTimer(g_hwnd, TIMER_CLOSE_BAR);
+    LogSession(L"Voice Typing closed after %d Esc", s_closeTries);
+    return;
+  } else if (s_closeTries >= kCloseMaxTries) {
+    KillTimer(g_hwnd, TIMER_CLOSE_BAR);
+    LogSession(L"Voice bar still visible after %d Esc; giving up", s_closeTries);
+    return;
+  }
+
+  ++s_closeTries;
+  LogSession(L"Sending Esc to close Voice Typing (%d/%d)", s_closeTries,
+             kCloseMaxTries);
+  SendEsc();
+  if (s_closeTries == 1)
+    SetTimer(g_hwnd, TIMER_RESTORE, kRestoreDelayMs, nullptr);
+  SetTimer(g_hwnd, TIMER_CLOSE_BAR, kCloseRetryMs, nullptr);
+}
+
 static void Poll() {
   ++s_pollTicks;
   HKL cur = CurrentHkl();
@@ -166,7 +205,14 @@ static void Poll() {
     LogSession(L"HKL changed during session: %p -> %p (fg=%p)",
                (void *)s_lastLoggedHkl, (void *)cur,
                (void *)GetForegroundWindow());
+    bool leftVoice = s_active && s_injectedOpen && cur &&
+                     LOWORD((UINT_PTR)s_lastLoggedHkl) == (LANGID)s_cfg.voiceLang &&
+                     LOWORD((UINT_PTR)cur) != (LANGID)s_cfg.voiceLang;
     s_lastLoggedHkl = cur;
+    if (leftVoice) {
+      EndSession(L"hkl-changed", true);
+      return;
+    }
   }
 
   VoiceBarInfo bar = QueryVoiceBar();
@@ -180,7 +226,7 @@ static void Poll() {
     s_barRect = bar.rect;
   } else if (s_active) {
     if (++s_missCount >= kCloseMisses)
-      EndSession(L"bar-closed", false);
+      EndSession(L"bar-closed", true);
   } else if (!s_dumpedWins && s_pollTicks >= 3) {
     s_dumpedWins = true;
     LogSession(L"Voice bar not detected after %d polls; topmost/host snapshot:",
@@ -833,12 +879,8 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
       OnInjectTick();
     else if (wp == TIMER_POLL)
       Poll();
-    else if (wp == TIMER_CLOSE_BAR) {
-      KillTimer(h, TIMER_CLOSE_BAR);
-      LogSession(L"Sending Esc to close Voice Typing");
-      SendEsc();
-      SetTimer(h, TIMER_RESTORE, kRestoreDelayMs, nullptr);
-    } else if (wp == TIMER_RESTORE) {
+    else if (wp == TIMER_CLOSE_BAR)
+      OnCloseBarTick(); else if (wp == TIMER_RESTORE) {
       KillTimer(h, TIMER_RESTORE);
       LogSession(L"Restoring HKL=%p (cur=%p)", (void *)s_restoreTarget,
                  (void *)CurrentHkl());
